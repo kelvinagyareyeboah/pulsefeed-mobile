@@ -67,11 +67,11 @@ export default function ModalScreen() {
 
           <View style={[styles.specCard, { backgroundColor: colors.card, borderColor: colors.cardBorder }]}>
             <View style={styles.cardTop}>
-              <FontAwesome name="microchip" size={18} color="#EC4899" />
-              <Text style={[styles.cardTitle, { color: colors.text }]}>On-Device Edge Re-Ranking</Text>
+              <FontAwesome name="sliders" size={18} color="#EC4899" />
+              <Text style={[styles.cardTitle, { color: colors.text }]}>Personalized Topic Re-Ranking</Text>
             </View>
             <Text style={[styles.cardDesc, { color: colors.textMuted }]}>
-              Client-side personalization vector (dwell: +0.75/s, like: +3.0, bookmark: +4.5) re-ranking the For You feed with explainable badges.
+              Client-side topic affinity scoring (dwell: +0.75/s, like: +3.0, bookmark: +4.5) re-ranking the For You feed with topic match badges.
             </Text>
           </View>
 

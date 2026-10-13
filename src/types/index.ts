@@ -97,3 +97,18 @@ export interface PrefetchStats {
   currentlyQueuedCount: number;
   lastPrefetchedUrl: string | null;
 }
+
+export interface User {
+  id: string;
+  email: string;
+  name: string;
+  avatarUrl?: string;
+  createdAt: string;
+  isGuest?: boolean;
+}
+
+export interface AuthState {
+  user: User | null;
+  isAuthenticated: boolean;
+  isLoading: boolean;
+}

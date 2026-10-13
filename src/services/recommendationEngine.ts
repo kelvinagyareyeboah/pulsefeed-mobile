@@ -118,11 +118,11 @@ class RecommendationEngine {
 
       const matchPercent = Math.min(99, Math.max(68, Math.round(finalScore * 100)));
 
-      let recommendationReason = `${matchPercent}% Edge Match`;
+      let recommendationReason = `${matchPercent}% Match`;
       if (article.category === highestCat && highestWeight > 3) {
-        recommendationReason = `${matchPercent}% Match • High affinity with #${highestCat.toUpperCase()}`;
+        recommendationReason = `${matchPercent}% Match • Category: #${highestCat.toUpperCase()}`;
       } else if (article.isTrending) {
-        recommendationReason = `${matchPercent}% Match • High Velocity Trend`;
+        recommendationReason = `${matchPercent}% Match • Trending`;
       }
 
       return {

@@ -12,10 +12,13 @@ import {
 import { FlashList } from '@shopify/flash-list';
 import FontAwesome from '@expo/vector-icons/FontAwesome';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { Alert } from 'react-native';
+import { useRouter } from 'expo-router';
 import Colors from '../../constants/Colors';
 import { useColorScheme } from '@/components/useColorScheme';
 import { useFeedStore } from '../../src/stores/useFeedStore';
 import { useBookmarkStore } from '../../src/stores/useBookmarkStore';
+import { useAuthStore } from '../../src/stores/useAuthStore';
 import { FeedCard } from '../../src/components/FeedCard';
 import { TopicPillBar } from '../../src/components/TopicPillBar';
 import { TelemetryHud } from '../../src/components/TelemetryHud';
@@ -24,9 +27,11 @@ import { prefetchService } from '../../src/services/prefetchService';
 import { Article } from '../../src/types';
 
 export default function FeedScreen() {
+  const router = useRouter();
   const insets = useSafeAreaInsets();
   const colorScheme = useColorScheme() ?? 'dark';
   const colors = Colors[colorScheme];
+  const { user, logout } = useAuthStore();
 
   const {
     articles,
@@ -74,6 +79,24 @@ export default function FeedScreen() {
     minimumViewTime: 100,
   }).current;
 
+  const handleAccountPress = () => {
+    Alert.alert(
+      user?.isGuest ? 'Guest Session' : 'Account Profile',
+      user ? `Signed in as ${user.name}\n${user.email}` : 'Not signed in',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Sign Out',
+          style: 'destructive',
+          onPress: async () => {
+            await logout();
+            router.replace('/(auth)/login' as any);
+          },
+        },
+      ]
+    );
+  };
+
   return (
     <View style={[styles.screen, { backgroundColor: colors.background, paddingTop: insets.top }]}>
       {/* Top Header */}
@@ -115,6 +138,15 @@ export default function FeedScreen() {
                 size={14}
                 color={colors.text}
               />
+            </Pressable>
+
+            <Pressable
+              onPress={handleAccountPress}
+              style={({ pressed }) => [
+                styles.headerBtn,
+                { backgroundColor: colors.card, borderColor: colors.cardBorder, opacity: pressed ? 0.7 : 1 },
+              ]}>
+              <FontAwesome name="user-o" size={14} color={colors.text} />
             </Pressable>
           </View>
         </View>

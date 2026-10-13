@@ -124,7 +124,7 @@ export const TelemetryHud: React.FC = () => {
                   telemetry: 'Telemetry',
                   outbox: `Outbox (${outbox.queueLength})`,
                   prefetch: `Prefetch (${prefetch.totalPrefetchedCount})`,
-                  edge_ai: 'Edge AI Model',
+                  edge_ai: 'Topic Affinity',
                 };
                 return (
                   <Pressable
@@ -322,9 +322,9 @@ export const TelemetryHud: React.FC = () => {
             {activeTab === 'edge_ai' && (
               <ScrollView style={styles.tabContent}>
                 <View style={[styles.infoBanner, { backgroundColor: colors.background, borderColor: colors.cardBorder }]}>
-                  <FontAwesome name="microchip" size={16} color="#A78BFA" />
+                  <FontAwesome name="sliders" size={16} color="#A78BFA" />
                   <Text style={[styles.infoBannerText, { color: colors.textMuted }]}>
-                    On-device model scores incoming feeds using your live affinity vector (dwell: +0.75/s, like: +3.0, bookmark: +4.5). Re-ranks the &apos;For You&apos; tab dynamically!
+                    Calculates personalized weights based on your reading dwell time, likes, and bookmarks. Re-ranks the &apos;For You&apos; tab dynamically.
                   </Text>
                 </View>
 
