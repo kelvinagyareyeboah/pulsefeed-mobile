@@ -28,6 +28,10 @@ class TelemetryOutboxService {
   }
 
   private async hydrateQueue() {
+    if (typeof window === 'undefined') {
+      this.isHydrated = true;
+      return;
+    }
     try {
       const persisted = await AsyncStorage.getItem(STORAGE_QUEUE_KEY);
       if (persisted) {
@@ -43,6 +47,7 @@ class TelemetryOutboxService {
   }
 
   private async persistQueue() {
+    if (typeof window === 'undefined') return;
     try {
       await AsyncStorage.setItem(STORAGE_QUEUE_KEY, JSON.stringify(this.queue));
     } catch (e) {

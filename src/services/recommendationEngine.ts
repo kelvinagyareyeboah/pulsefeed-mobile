@@ -21,6 +21,10 @@ class RecommendationEngine {
   }
 
   private async hydrate() {
+    if (typeof window === 'undefined') {
+      this.isHydrated = true;
+      return;
+    }
     try {
       const stored = await AsyncStorage.getItem(AFFINITY_STORAGE_KEY);
       if (stored) {
@@ -35,6 +39,7 @@ class RecommendationEngine {
   }
 
   private async persist() {
+    if (typeof window === 'undefined') return;
     try {
       await AsyncStorage.setItem(AFFINITY_STORAGE_KEY, JSON.stringify(this.affinity));
     } catch (e) {

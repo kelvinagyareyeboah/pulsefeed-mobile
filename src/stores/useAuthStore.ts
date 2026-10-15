@@ -25,6 +25,10 @@ export const useAuthStore = create<AuthStoreState>((set, get) => ({
   isLoading: false,
 
   hydrate: async () => {
+    if (typeof window === 'undefined') {
+      set({ isHydrated: true });
+      return;
+    }
     try {
       const stored = await AsyncStorage.getItem(AUTH_STORAGE_KEY);
       if (stored) {
