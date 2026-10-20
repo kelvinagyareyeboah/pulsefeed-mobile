@@ -13,11 +13,16 @@ import {
 import FontAwesome from '@expo/vector-icons/FontAwesome';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import Colors from '../../constants/Colors';
+import { useColorScheme } from '@/components/useColorScheme';
 import { useAuthStore } from '../../src/stores/useAuthStore';
 
 export default function ForgotPasswordScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const colorScheme = useColorScheme() ?? 'dark';
+  const colors = Colors[colorScheme];
+
   const { resetPassword } = useAuthStore();
 
   const [email, setEmail] = useState('');
@@ -41,33 +46,38 @@ export default function ForgotPasswordScreen() {
 
   return (
     <KeyboardAvoidingView
-      style={styles.keyboardView}
+      style={[styles.keyboardView, { backgroundColor: colors.background }]}
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
       <ScrollView
         contentContainerStyle={[
           styles.scrollContent,
-          { paddingTop: insets.top + 24, paddingBottom: insets.bottom + 24 },
+          { paddingTop: insets.top + 20, paddingBottom: insets.bottom + 24 },
         ]}
         keyboardShouldPersistTaps="handled">
         {/* Top Back Link */}
-        <Pressable onPress={() => router.back()} style={styles.backBtn} hitSlop={8}>
-          <FontAwesome name="arrow-left" size={14} color="#94A3B8" />
-          <Text style={styles.backText}>Back to Sign In</Text>
+        <Pressable onPress={() => router.back()} style={styles.backBtn} hitSlop={12}>
+          <FontAwesome name="arrow-left" size={14} color={colors.textMuted} />
+          <Text style={[styles.backText, { color: colors.textMuted }]}>Back to Sign In</Text>
         </Pressable>
 
         {isSuccess ? (
           /* Success State View */
-          <View style={styles.successCard}>
-            <View style={styles.successIconBox}>
-              <FontAwesome name="check-circle" size={32} color="#10B981" />
+          <View style={[styles.successCard, { backgroundColor: colors.card, borderColor: colors.cardBorder }]}>
+            <View style={[styles.successIconBadge, { backgroundColor: colors.primaryLight }]}>
+              <FontAwesome name="check-circle" size={32} color={colors.primary} />
             </View>
-            <Text style={styles.heading}>Instructions Sent</Text>
-            <Text style={styles.subheading}>
-              We sent password recovery instructions to {email}. Please check your inbox.
+            <Text style={[styles.successHeading, { color: colors.text }]}>Reset Link Sent</Text>
+            <Text style={[styles.successSubheading, { color: colors.textMuted }]}>
+              We have dispatched a password recovery link to{' '}
+              <Text style={{ color: colors.primary, fontWeight: '700' }}>{email}</Text>. Please follow the instructions to set a new password.
             </Text>
+
             <Pressable
               onPress={() => router.replace('/(auth)/login' as any)}
-              style={styles.primaryBtn}>
+              style={({ pressed }) => [
+                styles.primaryBtn,
+                { backgroundColor: colors.primary, opacity: pressed ? 0.88 : 1 },
+              ]}>
               <Text style={styles.primaryBtnText}>Return to Sign In</Text>
             </Pressable>
           </View>
@@ -75,31 +85,30 @@ export default function ForgotPasswordScreen() {
           /* Form View */
           <>
             <View style={styles.brandHeader}>
-              <View style={styles.logoBadge}>
-                <FontAwesome name="key" size={24} color="#38BDF8" />
-              </View>
-              <Text style={styles.heading}>Reset Password</Text>
-              <Text style={styles.subheading}>
-                Enter your registered email address and we will send you a recovery link
+              <Text style={[styles.heading, { color: colors.text }]}>Reset Password</Text>
+              <Text style={[styles.subheading, { color: colors.textMuted }]}>
+                Enter the email address registered with your PulseFeed account. We will send you instructions to reset your password.
               </Text>
             </View>
 
+            {/* Error Box */}
             {errorMessage ? (
-              <View style={styles.errorBox}>
-                <FontAwesome name="exclamation-circle" size={14} color="#EF4444" />
-                <Text style={styles.errorText}>{errorMessage}</Text>
+              <View style={[styles.errorBox, { backgroundColor: colors.card, borderColor: colors.bookmark }]}>
+                <FontAwesome name="exclamation-circle" size={14} color={colors.bookmark} />
+                <Text style={[styles.errorText, { color: colors.bookmark }]}>{errorMessage}</Text>
               </View>
             ) : null}
 
-            <View style={styles.formCard}>
+            {/* Input Form Card */}
+            <View style={[styles.formCard, { backgroundColor: colors.card, borderColor: colors.cardBorder }]}>
               <View style={styles.inputGroup}>
-                <Text style={styles.inputLabel}>EMAIL ADDRESS</Text>
-                <View style={styles.inputWrapper}>
-                  <FontAwesome name="envelope-o" size={14} color="#64748B" style={styles.inputIcon} />
+                <Text style={[styles.inputLabel, { color: colors.textMuted }]}>EMAIL ADDRESS</Text>
+                <View style={[styles.inputWrapper, { backgroundColor: colors.background, borderColor: colors.cardBorder }]}>
+                  <FontAwesome name="envelope-o" size={14} color={colors.textSubtle} style={styles.inputIcon} />
                   <TextInput
-                    style={styles.textInput}
+                    style={[styles.textInput, { color: colors.text }]}
                     placeholder="name@example.com"
-                    placeholderTextColor="#64748B"
+                    placeholderTextColor={colors.textSubtle}
                     value={email}
                     onChangeText={(val) => {
                       setEmail(val);
@@ -107,7 +116,7 @@ export default function ForgotPasswordScreen() {
                     }}
                     autoCapitalize="none"
                     keyboardType="email-address"
-                    autoFocus
+                    autoComplete="email"
                   />
                 </View>
               </View>
@@ -117,12 +126,12 @@ export default function ForgotPasswordScreen() {
                 disabled={isLoading}
                 style={({ pressed }) => [
                   styles.primaryBtn,
-                  { opacity: pressed || isLoading ? 0.85 : 1 },
+                  { backgroundColor: colors.primary, opacity: pressed ? 0.88 : 1 },
                 ]}>
                 {isLoading ? (
-                  <ActivityIndicator size="small" color="#090D16" />
+                  <ActivityIndicator color="#090D16" size="small" />
                 ) : (
-                  <Text style={styles.primaryBtnText}>Send Reset Link</Text>
+                  <Text style={styles.primaryBtnText}>Send Recovery Link</Text>
                 )}
               </Pressable>
             </View>
@@ -136,135 +145,115 @@ export default function ForgotPasswordScreen() {
 const styles = StyleSheet.create({
   keyboardView: {
     flex: 1,
-    backgroundColor: '#090D16',
   },
   scrollContent: {
-    flexGrow: 1,
-    justifyContent: 'center',
     paddingHorizontal: 20,
+    justifyContent: 'center',
+    flexGrow: 1,
   },
   backBtn: {
     flexDirection: 'row',
     alignItems: 'center',
+    minHeight: 44,
+    marginBottom: 20,
     gap: 8,
-    marginBottom: 24,
-    alignSelf: 'flex-start',
   },
   backText: {
-    color: '#94A3B8',
-    fontSize: 13,
-    fontWeight: '600',
+    fontSize: 14,
+    fontWeight: '500',
   },
   brandHeader: {
-    alignItems: 'center',
-    marginBottom: 24,
-  },
-  logoBadge: {
-    width: 60,
-    height: 60,
-    borderRadius: 16,
-    backgroundColor: '#121826',
-    borderWidth: 1,
-    borderColor: '#1E293B',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 16,
+    marginBottom: 20,
   },
   heading: {
-    color: '#F8FAFC',
-    fontSize: 22,
+    fontSize: 26,
     fontWeight: '800',
+    letterSpacing: -0.5,
     marginBottom: 6,
-    textAlign: 'center',
   },
   subheading: {
-    color: '#94A3B8',
-    fontSize: 13,
-    textAlign: 'center',
-    lineHeight: 18,
+    fontSize: 14,
+    lineHeight: 20,
   },
   errorBox: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
-    backgroundColor: 'rgba(239, 68, 68, 0.1)',
+    padding: 12,
+    borderRadius: 8,
     borderWidth: 1,
-    borderColor: '#EF4444',
-    paddingHorizontal: 14,
-    paddingVertical: 10,
-    borderRadius: 10,
     marginBottom: 16,
+    gap: 8,
   },
   errorText: {
-    color: '#EF4444',
-    fontSize: 12,
-    fontWeight: '600',
+    fontSize: 13,
+    fontWeight: '500',
     flex: 1,
   },
   formCard: {
-    backgroundColor: '#121826',
-    borderRadius: 18,
-    borderWidth: 1,
-    borderColor: '#1E293B',
     padding: 20,
+    borderRadius: 16,
+    borderWidth: 1,
+    gap: 16,
   },
   inputGroup: {
-    marginBottom: 18,
+    gap: 6,
   },
   inputLabel: {
-    color: '#64748B',
-    fontSize: 10,
-    fontWeight: '800',
-    letterSpacing: 0.8,
-    marginBottom: 8,
+    fontSize: 11,
+    fontWeight: '700',
+    letterSpacing: 0.6,
   },
   inputWrapper: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#090D16',
-    borderRadius: 12,
+    borderRadius: 10,
     borderWidth: 1,
-    borderColor: '#1E293B',
     paddingHorizontal: 12,
-    height: 48,
+    minHeight: 48,
   },
   inputIcon: {
     marginRight: 10,
-    width: 16,
-    textAlign: 'center',
   },
   textInput: {
     flex: 1,
-    color: '#F8FAFC',
-    fontSize: 14,
+    fontSize: 15,
+    paddingVertical: 12,
   },
   primaryBtn: {
-    backgroundColor: '#38BDF8',
-    borderRadius: 12,
-    height: 48,
-    alignItems: 'center',
+    minHeight: 48,
+    borderRadius: 24,
     justifyContent: 'center',
+    alignItems: 'center',
   },
   primaryBtnText: {
     color: '#090D16',
-    fontSize: 14,
-    fontWeight: '800',
+    fontSize: 15,
+    fontWeight: '700',
   },
   successCard: {
-    backgroundColor: '#121826',
-    borderRadius: 18,
+    padding: 28,
+    borderRadius: 16,
     borderWidth: 1,
-    borderColor: '#1E293B',
-    padding: 24,
     alignItems: 'center',
+    gap: 12,
   },
-  successIconBox: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
-    backgroundColor: 'rgba(16, 185, 129, 0.1)',
+  successIconBadge: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 16,
+    marginBottom: 6,
+  },
+  successHeading: {
+    fontSize: 22,
+    fontWeight: '800',
+    letterSpacing: -0.3,
+  },
+  successSubheading: {
+    fontSize: 14,
+    lineHeight: 22,
+    textAlign: 'center',
+    marginBottom: 12,
   },
 });

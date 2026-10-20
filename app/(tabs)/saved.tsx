@@ -1,334 +1,284 @@
 import React, { useState } from 'react';
 import {
-  StyleSheet,
   View,
   Text,
-  FlatList,
+  StyleSheet,
   Pressable,
-  Alert,
+  FlatList,
 } from 'react-native';
 import { Image } from 'expo-image';
 import FontAwesome from '@expo/vector-icons/FontAwesome';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Colors from '../../constants/Colors';
 import { useColorScheme } from '@/components/useColorScheme';
 import { useBookmarkStore } from '../../src/stores/useBookmarkStore';
-import { BookmarkRecord } from '../../src/types';
+import { EmptyState } from '../../src/components/EmptyState';
+import { Article, BookmarkRecord } from '../../src/types';
 
 export default function SavedScreen() {
+  const router = useRouter();
   const insets = useSafeAreaInsets();
   const colorScheme = useColorScheme() ?? 'dark';
   const colors = Colors[colorScheme];
-  const router = useRouter();
 
-  const { bookmarks, toggleBookmark, toggleReadStatus, clearAllBookmarks } = useBookmarkStore();
-  const [filter, setFilter] = useState<'all' | 'unread' | 'read'>('all');
+  const { bookmarks, toggleBookmark, toggleReadStatus } = useBookmarkStore();
+  const [filter, setFilter] = useState<'all' | 'unread'>('all');
 
-  const filteredBookmarks = bookmarks.filter((b) => {
-    if (filter === 'unread') return !b.isRead;
-    if (filter === 'read') return b.isRead;
+  const filteredBookmarks = bookmarks.filter((item) => {
+    if (filter === 'unread') return !item.isRead;
     return true;
   });
 
-  const handleClearAll = () => {
-    if (bookmarks.length === 0) return;
-    Alert.alert(
-      'Clear Saved Stories',
-      'Are you sure you want to remove all saved articles from offline storage?',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        { text: 'Clear All', style: 'destructive', onPress: clearAllBookmarks },
-      ]
-    );
-  };
-
-  const renderBookmarkItem = ({ item }: { item: BookmarkRecord }) => {
-    const art = item.article;
-
-    return (
-      <Pressable
-        onPress={() => {
-          router.push({
-            pathname: '/article/[id]',
-            params: { id: art.id },
-          });
-        }}
-        style={({ pressed }) => [
-          styles.itemCard,
-          {
-            backgroundColor: colors.card,
-            borderColor: colors.cardBorder,
-            opacity: pressed ? 0.85 : 1,
-          },
-        ]}>
-        <Image
-          source={{ uri: art.imageUrl }}
-          style={styles.itemImage}
-          contentFit="cover"
-          cachePolicy="memory-disk"
-        />
-
-        <View style={styles.itemInfo}>
-          <View style={styles.itemTopRow}>
-            <Text style={[styles.itemSource, { color: colors.primary }]}>{art.source.name}</Text>
-            <Pressable
-              onPress={() => toggleReadStatus(art.id)}
-              hitSlop={8}
-              style={[
-                styles.readBadge,
-                { backgroundColor: item.isRead ? 'rgba(16, 185, 129, 0.15)' : colors.badge },
-              ]}>
-              <Text
-                style={[
-                  styles.readBadgeText,
-                  { color: item.isRead ? '#10B981' : colors.textMuted },
-                ]}>
-                {item.isRead ? 'READ' : 'UNREAD'}
-              </Text>
-            </Pressable>
-          </View>
-
-          <Text style={[styles.itemTitle, { color: colors.text }]} numberOfLines={2}>
-            {art.title}
-          </Text>
-
-          <View style={styles.itemBottomRow}>
-            <Text style={[styles.itemMeta, { color: colors.textMuted }]}>
-              {art.readTimeMinutes} min read
-            </Text>
-
-            <Pressable
-              onPress={() => toggleBookmark(art)}
-              hitSlop={8}
-              style={styles.removeBtn}>
-              <FontAwesome name="trash-o" size={15} color={colors.textSubtle} />
-            </Pressable>
-          </View>
-        </View>
-      </Pressable>
-    );
+  const handleOpenArticle = (article: Article) => {
+    router.push({
+      pathname: '/article/[id]',
+      params: { id: article.id },
+    } as any);
   };
 
   return (
-    <View style={[styles.screen, { backgroundColor: colors.background, paddingTop: insets.top }]}>
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
       {/* Header */}
-      <View style={[styles.header, { borderBottomColor: colors.cardBorder }]}>
-        <View style={styles.headerTop}>
-          <View>
-            <View style={styles.offlineStatusRow}>
-              <View style={styles.offlineDot} />
-              <Text style={styles.offlineStatusText}>OFFLINE ARCHIVE</Text>
-            </View>
-            <Text style={[styles.headerTitle, { color: colors.text }]}>Saved Articles</Text>
-          </View>
-
-          {bookmarks.length > 0 && (
-            <Pressable onPress={handleClearAll} hitSlop={8} style={styles.clearBtn}>
-              <Text style={[styles.clearText, { color: colors.textMuted }]}>Clear All</Text>
-            </Pressable>
-          )}
-        </View>
-
-        {/* Filter Pills (All, Unread, Read) */}
-        <View style={styles.filterRow}>
-          {(['all', 'unread', 'read'] as const).map((tab) => {
-            const isSelected = filter === tab;
-            return (
-              <Pressable
-                key={tab}
-                onPress={() => setFilter(tab)}
-                style={[
-                  styles.filterTab,
-                  {
-                    backgroundColor: isSelected ? colors.primary : colors.card,
-                    borderColor: isSelected ? colors.primary : colors.cardBorder,
-                  },
-                ]}>
-                <Text
-                  style={[
-                    styles.filterTabText,
-                    {
-                      color: isSelected ? '#090D16' : colors.text,
-                      fontWeight: isSelected ? '700' : '500',
-                    },
-                  ]}>
-                  {tab === 'all' ? `All (${bookmarks.length})` : tab.toUpperCase()}
-                </Text>
-              </Pressable>
-            );
-          })}
-        </View>
+      <View style={[styles.header, { paddingTop: insets.top + 8, borderBottomColor: colors.cardBorder }]}>
+        <Text style={[styles.title, { color: colors.text }]}>Library</Text>
+        <Text style={[styles.subtitle, { color: colors.textMuted }]}>
+          {bookmarks.length} {bookmarks.length === 1 ? 'story' : 'stories'} saved for offline reading
+        </Text>
       </View>
 
-      {/* List */}
-      <FlatList
-        data={filteredBookmarks}
-        keyExtractor={(item) => item.article.id}
-        renderItem={renderBookmarkItem}
-        contentContainerStyle={styles.listContent}
-        ListEmptyComponent={
-          <View style={styles.emptyContainer}>
-            <FontAwesome name="bookmark-o" size={48} color={colors.textSubtle} />
-            <Text style={[styles.emptyTitle, { color: colors.text }]}>No saved stories</Text>
-            <Text style={[styles.emptySubtitle, { color: colors.textMuted }]}>
-              Tap the bookmark icon on any feed card to save articles for instant offline reading.
-            </Text>
-            <Pressable
-              onPress={() => router.navigate('/(tabs)')}
-              style={[styles.exploreBtn, { backgroundColor: colors.primary }]}>
-              <Text style={styles.exploreBtnText}>Go to Feed</Text>
-            </Pressable>
-          </View>
-        }
-      />
+      {/* Filter Tabs */}
+      <View style={[styles.tabBar, { borderBottomColor: colors.cardBorder }]}>
+        <Pressable
+          onPress={() => setFilter('all')}
+          style={[styles.tabItem, filter === 'all' && { borderBottomColor: colors.primary }]}>
+          <Text style={[styles.tabText, { color: filter === 'all' ? colors.text : colors.textMuted }]}>
+            All ({bookmarks.length})
+          </Text>
+        </Pressable>
+
+        <Pressable
+          onPress={() => setFilter('unread')}
+          style={[styles.tabItem, filter === 'unread' && { borderBottomColor: colors.primary }]}>
+          <Text style={[styles.tabText, { color: filter === 'unread' ? colors.text : colors.textMuted }]}>
+            Unread ({bookmarks.filter((b) => !b.isRead).length})
+          </Text>
+        </Pressable>
+      </View>
+
+      {/* Content List */}
+      {filteredBookmarks.length === 0 ? (
+        <EmptyState
+          imageSource={require('../../assets/images/empty-library.jpg')}
+          title={filter === 'unread' ? 'No unread stories' : 'Your library is empty'}
+          description={
+            filter === 'unread'
+              ? 'You have read all stories in your reading list. Stories you bookmark will appear here.'
+              : 'Save long-form stories to read them anywhere, completely offline without an internet connection.'
+          }
+          actionLabel="Explore Stories"
+          onAction={() => router.push('/(tabs)' as any)}
+        />
+      ) : (
+        <FlatList
+          data={filteredBookmarks}
+          keyExtractor={(item) => item.article.id}
+          contentContainerStyle={styles.listContent}
+          renderItem={({ item }) => {
+            const { article, isRead } = item;
+            return (
+              <Pressable
+                onPress={() => handleOpenArticle(article)}
+                style={({ pressed }) => [
+                  styles.card,
+                  {
+                    backgroundColor: colors.card,
+                    borderColor: colors.cardBorder,
+                    opacity: pressed ? 0.95 : 1,
+                  },
+                ]}>
+                <View style={styles.cardContent}>
+                  {/* Author / Source Meta */}
+                  <View style={styles.authorRow}>
+                    <Text style={[styles.authorName, { color: colors.text }]} numberOfLines={1}>
+                      {article.author.name}
+                    </Text>
+                    <Text style={[styles.dot, { color: colors.textSubtle }]}>•</Text>
+                    <Text style={[styles.sourceName, { color: colors.textMuted }]} numberOfLines={1}>
+                      {article.source.name}
+                    </Text>
+                  </View>
+
+                  {/* Title */}
+                  <Text style={[styles.cardTitle, { color: colors.text }]} numberOfLines={2}>
+                    {article.title}
+                  </Text>
+
+                  {/* Offline Badge & Read Time */}
+                  <View style={styles.cardFooter}>
+                    <View style={[styles.offlineBadge, { backgroundColor: colors.badge }]}>
+                      <FontAwesome name="check" size={10} color={colors.primary} style={{ marginRight: 4 }} />
+                      <Text style={[styles.offlineText, { color: colors.badgeText }]}>Available offline</Text>
+                    </View>
+
+                    <Text style={[styles.readTimeText, { color: colors.textSubtle }]}>
+                      {article.readTimeMinutes} min read
+                    </Text>
+                  </View>
+                </View>
+
+                {/* Right Actions & Thumbnail */}
+                <View style={styles.cardRightCol}>
+                  <Image
+                    source={{ uri: article.imageUrl }}
+                    style={styles.thumbnail}
+                    contentFit="cover"
+                    transition={200}
+                    cachePolicy="disk"
+                  />
+
+                  <View style={styles.actionButtonsRow}>
+                    {/* Mark as read/unread */}
+                    <Pressable
+                      onPress={() => toggleReadStatus(article.id)}
+                      hitSlop={8}
+                      style={styles.touchAction}>
+                      <FontAwesome
+                        name={isRead ? 'check-circle' : 'circle-o'}
+                        size={15}
+                        color={isRead ? colors.primary : colors.textSubtle}
+                      />
+                    </Pressable>
+
+                    {/* Remove Bookmark */}
+                    <Pressable
+                      onPress={() => toggleBookmark(article)}
+                      hitSlop={8}
+                      style={styles.touchAction}>
+                      <FontAwesome name="bookmark" size={15} color={colors.tint} />
+                    </Pressable>
+                  </View>
+                </View>
+              </Pressable>
+            );
+          }}
+        />
+      )}
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  screen: {
+  container: {
     flex: 1,
   },
   header: {
-    paddingHorizontal: 16,
-    paddingTop: 8,
+    paddingHorizontal: 20,
     paddingBottom: 12,
     borderBottomWidth: 1,
   },
-  headerTop: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    marginBottom: 12,
-  },
-  offlineStatusRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
+  title: {
+    fontSize: 24,
+    fontWeight: '800',
+    letterSpacing: -0.5,
     marginBottom: 4,
   },
-  offlineDot: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-    backgroundColor: '#10B981',
-  },
-  offlineStatusText: {
-    color: '#10B981',
-    fontSize: 10,
-    fontWeight: '800',
-    letterSpacing: 0.8,
-  },
-  headerTitle: {
-    fontSize: 24,
-    fontWeight: '900',
-    letterSpacing: -0.5,
-  },
-  clearBtn: {
-    paddingVertical: 6,
-    paddingHorizontal: 10,
-  },
-  clearText: {
+  subtitle: {
     fontSize: 13,
   },
-  filterRow: {
+  tabBar: {
     flexDirection: 'row',
-    gap: 8,
+    paddingHorizontal: 20,
+    borderBottomWidth: 1,
   },
-  filterTab: {
-    paddingHorizontal: 14,
-    paddingVertical: 6,
-    borderRadius: 16,
-    borderWidth: 1,
+  tabItem: {
+    paddingVertical: 12,
+    marginRight: 24,
+    borderBottomWidth: 2,
+    borderBottomColor: 'transparent',
+    minHeight: 44,
+    justifyContent: 'center',
   },
-  filterTabText: {
-    fontSize: 12,
+  tabText: {
+    fontSize: 14,
+    fontWeight: '700',
   },
   listContent: {
-    padding: 16,
-    paddingBottom: 40,
+    paddingVertical: 8,
   },
-  itemCard: {
+  card: {
     flexDirection: 'row',
-    borderRadius: 14,
-    borderWidth: 1,
-    overflow: 'hidden',
-    marginBottom: 12,
-  },
-  itemImage: {
-    width: 105,
-    height: '100%',
-    minHeight: 100,
-    backgroundColor: '#1E293B',
-  },
-  itemInfo: {
-    flex: 1,
-    padding: 12,
-    justifyContent: 'space-between',
-  },
-  itemTopRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    borderBottomWidth: 1,
     alignItems: 'center',
-    marginBottom: 4,
   },
-  itemSource: {
-    fontSize: 11,
-    fontWeight: '700',
+  cardContent: {
+    flex: 1,
+    marginRight: 14,
   },
-  readBadge: {
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 6,
-  },
-  readBadgeText: {
-    fontSize: 9,
-    fontWeight: '800',
-  },
-  itemTitle: {
-    fontSize: 14,
-    fontWeight: '700',
-    lineHeight: 19,
+  authorRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
     marginBottom: 6,
   },
-  itemBottomRow: {
+  authorName: {
+    fontSize: 12,
+    fontWeight: '600',
+    maxWidth: 110,
+  },
+  sourceName: {
+    fontSize: 12,
+    maxWidth: 100,
+  },
+  dot: {
+    marginHorizontal: 5,
+    fontSize: 10,
+  },
+  cardTitle: {
+    fontSize: 15,
+    fontWeight: '700',
+    lineHeight: 20,
+    marginBottom: 8,
+  },
+  cardFooter: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
+    gap: 8,
   },
-  itemMeta: {
+  offlineBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 7,
+    paddingVertical: 3,
+    borderRadius: 4,
+  },
+  offlineText: {
+    fontSize: 10,
+    fontWeight: '600',
+  },
+  readTimeText: {
     fontSize: 11,
+    fontWeight: '500',
   },
-  removeBtn: {
-    padding: 4,
+  cardRightCol: {
+    alignItems: 'center',
+    gap: 8,
   },
-  emptyContainer: {
+  thumbnail: {
+    width: 72,
+    height: 72,
+    borderRadius: 8,
+  },
+  actionButtonsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  touchAction: {
+    minHeight: 44,
+    minWidth: 44,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingTop: 80,
-    paddingHorizontal: 32,
-  },
-  emptyTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    marginTop: 16,
-  },
-  emptySubtitle: {
-    fontSize: 14,
-    textAlign: 'center',
-    marginTop: 6,
-    lineHeight: 20,
-    marginBottom: 20,
-  },
-  exploreBtn: {
-    paddingHorizontal: 20,
-    paddingVertical: 10,
-    borderRadius: 20,
-  },
-  exploreBtnText: {
-    color: '#090D16',
-    fontWeight: '700',
-    fontSize: 14,
   },
 });

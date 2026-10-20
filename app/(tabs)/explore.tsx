@@ -1,163 +1,191 @@
-import React, { useState } from 'react';
+import React from 'react';
 import {
-  StyleSheet,
   View,
   Text,
+  StyleSheet,
   ScrollView,
   Pressable,
-  TextInput,
 } from 'react-native';
+import { Image } from 'expo-image';
 import FontAwesome from '@expo/vector-icons/FontAwesome';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Colors from '../../constants/Colors';
 import { useColorScheme } from '@/components/useColorScheme';
-import { TOPIC_CATEGORIES, FeedService } from '../../src/services/feedService';
 import { useFeedStore } from '../../src/stores/useFeedStore';
-import { TopicCategory } from '../../src/types';
+import { TopicCategory, Article } from '../../src/types';
+import { CURATED_ARTICLES } from '../../src/services/feedService';
+
+interface ExploreTopicCard {
+  id: TopicCategory;
+  title: string;
+  image: any;
+  articleCount: string;
+}
+
+const EXPLORE_TOPICS: ExploreTopicCard[] = [
+  {
+    id: 'tech',
+    title: 'Engineering',
+    image: require('../../assets/images/topic-tech.jpg'),
+    articleCount: '1.4k stories',
+  },
+  {
+    id: 'ai',
+    title: 'Technology & AI',
+    image: require('../../assets/images/topic-ai.jpg'),
+    articleCount: '2.8k stories',
+  },
+  {
+    id: 'design',
+    title: 'Design & UI',
+    image: require('../../assets/images/topic-design.jpg'),
+    articleCount: '920 stories',
+  },
+  {
+    id: 'startups',
+    title: 'Startups & VC',
+    image: require('../../assets/images/topic-startups.jpg'),
+    articleCount: '1.1k stories',
+  },
+  {
+    id: 'finance',
+    title: 'Markets & Economy',
+    image: require('../../assets/images/topic-finance.jpg'),
+    articleCount: '780 stories',
+  },
+];
 
 export default function ExploreScreen() {
+  const router = useRouter();
   const insets = useSafeAreaInsets();
   const colorScheme = useColorScheme() ?? 'dark';
   const colors = Colors[colorScheme];
-  const router = useRouter();
-  const { setCategory, setSearchQuery } = useFeedStore();
-  const [filterText, setFilterText] = useState('');
+  const { setCategory } = useFeedStore();
 
-  const trendingTopics = FeedService.getTrendingTopics();
-
-  const handleSelectTopic = (cat: TopicCategory, tag?: string) => {
-    setCategory(cat);
-    if (tag) {
-      setSearchQuery(tag);
-    }
-    router.navigate('/(tabs)');
+  const handleSelectTopic = (id: TopicCategory) => {
+    setCategory(id);
+    router.push('/(tabs)' as any);
   };
 
-  const categories = TOPIC_CATEGORIES.filter((c) => c.id !== 'all');
+  const handleOpenArticle = (art: Article) => {
+    router.push({
+      pathname: '/article/[id]',
+      params: { id: art.id },
+    } as any);
+  };
+
+  const trendingArticles = CURATED_ARTICLES.slice(0, 4);
 
   return (
-    <View style={[styles.screen, { backgroundColor: colors.background, paddingTop: insets.top }]}>
-      <ScrollView contentContainerStyle={styles.scrollContent}>
-        {/* Header */}
-        <View style={styles.header}>
-          <Text style={[styles.headerSubtitle, { color: colors.primary }]}>DISCOVER</Text>
-          <Text style={[styles.headerTitle, { color: colors.text }]}>Explore & Trending</Text>
-        </View>
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
+      {/* Header Bar */}
+      <View style={[styles.header, { paddingTop: insets.top + 8, borderBottomColor: colors.cardBorder }]}>
+        <Text style={[styles.screenTitle, { color: colors.text }]}>Explore</Text>
+        <Pressable
+          onPress={() => router.push('/search' as any)}
+          style={[styles.searchBarShortcut, { backgroundColor: colors.card, borderColor: colors.cardBorder }]}>
+          <FontAwesome name="search" size={13} color={colors.textSubtle} style={styles.searchIcon} />
+          <Text style={[styles.searchPlaceholder, { color: colors.textSubtle }]}>
+            Search stories and topics...
+          </Text>
+        </Pressable>
+      </View>
 
-        {/* Search Bar */}
-        <View style={[styles.searchBar, { backgroundColor: colors.card, borderColor: colors.cardBorder }]}>
-          <FontAwesome name="search" size={14} color={colors.textMuted} style={styles.searchIcon} />
-          <TextInput
-            style={[styles.searchInput, { color: colors.text }]}
-            placeholder="Search channels, tags, or topics..."
-            placeholderTextColor={colors.textSubtle}
-            value={filterText}
-            onChangeText={setFilterText}
-            onSubmitEditing={() => {
-              if (filterText.trim()) {
-                setSearchQuery(filterText.trim());
-                router.navigate('/(tabs)');
-              }
-            }}
-          />
-        </View>
-
-        {/* Trending Section */}
+      <ScrollView
+        contentContainerStyle={[styles.scrollContent, { paddingBottom: insets.bottom + 24 }]}
+        showsVerticalScrollIndicator={false}>
+        {/* Section: Topics Grid with Imagery */}
         <View style={styles.sectionHeader}>
-          <View style={styles.sectionTitleRow}>
-            <FontAwesome name="fire" size={16} color="#FFA116" />
-            <Text style={[styles.sectionTitle, { color: colors.text }]}>Trending Topics</Text>
-          </View>
+          <Text style={[styles.sectionHeading, { color: colors.text }]}>Browse Topics</Text>
+          <Text style={[styles.sectionSubheading, { color: colors.textMuted }]}>
+            Curated coverage across software, design, and markets
+          </Text>
         </View>
 
-        <View style={styles.trendingGrid}>
-          {trendingTopics.map((item, index) => (
+        <View style={styles.topicsGrid}>
+          {EXPLORE_TOPICS.map((topic) => (
             <Pressable
-              key={item.tag}
-              onPress={() => handleSelectTopic(item.category, item.tag)}
+              key={topic.id}
+              onPress={() => handleSelectTopic(topic.id)}
               style={({ pressed }) => [
-                styles.trendingCard,
+                styles.topicCard,
                 {
-                  backgroundColor: colors.card,
                   borderColor: colors.cardBorder,
-                  opacity: pressed ? 0.8 : 1,
+                  opacity: pressed ? 0.92 : 1,
                 },
               ]}>
-              <View style={styles.trendingRankBox}>
-                <Text style={styles.trendingRank}>#{index + 1}</Text>
+              <Image source={topic.image} style={styles.topicImage} contentFit="cover" transition={250} />
+              <View style={styles.topicOverlay} />
+              <View style={styles.topicContent}>
+                <Text style={styles.topicTitle}>{topic.title}</Text>
+                <Text style={styles.topicCount}>{topic.articleCount}</Text>
               </View>
-              <View style={styles.trendingInfo}>
-                <Text style={[styles.trendingTag, { color: colors.text }]}>#{item.tag}</Text>
-                <Text style={[styles.trendingCount, { color: colors.textMuted }]}>
-                  {item.count.toLocaleString()} readers
-                </Text>
-              </View>
-              <FontAwesome name="chevron-right" size={12} color={colors.textSubtle} />
             </Pressable>
           ))}
         </View>
 
-        {/* Categories Section */}
-        <View style={styles.sectionHeader}>
-          <View style={styles.sectionTitleRow}>
-            <FontAwesome name="th-large" size={15} color={colors.primary} />
-            <Text style={[styles.sectionTitle, { color: colors.text }]}>Channels</Text>
+        {/* Section: Trending on PulseFeed (Medium Style Numbered List) */}
+        <View style={[styles.sectionHeader, { marginTop: 32 }]}>
+          <View style={styles.trendingHeaderRow}>
+            <FontAwesome name="line-chart" size={14} color={colors.primary} style={{ marginRight: 8 }} />
+            <Text style={[styles.sectionHeading, { color: colors.text }]}>Trending on PulseFeed</Text>
           </View>
+          <Text style={[styles.sectionSubheading, { color: colors.textMuted }]}>
+            Most read stories across the network today
+          </Text>
         </View>
 
-        <View style={styles.categoryGrid}>
-          {categories.map((cat) => (
-            <Pressable
-              key={cat.id}
-              onPress={() => handleSelectTopic(cat.id)}
-              style={({ pressed }) => [
-                styles.categoryCard,
-                {
-                  backgroundColor: colors.card,
-                  borderColor: colors.cardBorder,
-                  opacity: pressed ? 0.85 : 1,
-                },
-              ]}>
-              <View style={[styles.catIconWrap, { backgroundColor: colors.primaryLight }]}>
-                <FontAwesome name={cat.icon as any} size={18} color={colors.primary} />
-              </View>
-              <Text style={[styles.catTitle, { color: colors.text }]}>{cat.label}</Text>
-              <Text style={[styles.catSubtitle, { color: colors.textMuted }]}>
-                Curated feeds & signals
-              </Text>
-            </Pressable>
-          ))}
-        </View>
+        <View style={styles.trendingList}>
+          {trendingArticles.map((article, index) => {
+            const rank = `0${index + 1}`;
+            return (
+              <Pressable
+                key={article.id}
+                onPress={() => handleOpenArticle(article)}
+                style={({ pressed }) => [
+                  styles.trendingItem,
+                  { borderBottomColor: colors.cardBorder, opacity: pressed ? 0.85 : 1 },
+                ]}>
+                {/* Number Ranking */}
+                <Text style={[styles.rankNumber, { color: colors.cardBorder }]}>{rank}</Text>
 
-        {/* Curated Publishers */}
-        <View style={styles.sectionHeader}>
-          <View style={styles.sectionTitleRow}>
-            <FontAwesome name="bookmark" size={15} color={colors.accent} />
-            <Text style={[styles.sectionTitle, { color: colors.text }]}>Top Curated Sources</Text>
-          </View>
-        </View>
+                {/* Content */}
+                <View style={styles.trendingDetails}>
+                  <View style={styles.authorRow}>
+                    {article.author.avatarUrl ? (
+                      <Image source={{ uri: article.author.avatarUrl }} style={styles.miniAvatar} contentFit="cover" />
+                    ) : (
+                      <View style={[styles.miniAvatarFallback, { backgroundColor: colors.badge }]}>
+                        <FontAwesome name="user" size={9} color={colors.textMuted} />
+                      </View>
+                    )}
+                    <Text style={[styles.authorName, { color: colors.text }]} numberOfLines={1}>
+                      {article.author.name}
+                    </Text>
+                    <Text style={[styles.dot, { color: colors.textSubtle }]}>•</Text>
+                    <Text style={[styles.sourceText, { color: colors.textMuted }]} numberOfLines={1}>
+                      {article.source.name}
+                    </Text>
+                  </View>
 
-        <View style={[styles.sourceListCard, { backgroundColor: colors.card, borderColor: colors.cardBorder }]}>
-          {[
-            { name: 'Mobile Systems Engineering', domain: 'mobilesystems.dev', focus: 'React Native & iOS/Android' },
-            { name: 'Distributed Weekly', domain: 'distributedweekly.com', focus: 'Databases & Local-First' },
-            { name: 'Edge AI Journal', domain: 'edgeai.internal', focus: 'Quantized LLMs & Neural Silicon' },
-            { name: 'Aesthetic Interfaces', domain: 'aestheticui.org', focus: 'Spatial UI & Design Systems' },
-          ].map((src, i, arr) => (
-            <View
-              key={src.domain}
-              style={[
-                styles.sourceItem,
-                i < arr.length - 1 && { borderBottomWidth: 1, borderBottomColor: colors.cardBorder },
-              ]}>
-              <View>
-                <Text style={[styles.sourceItemName, { color: colors.text }]}>{src.name}</Text>
-                <Text style={[styles.sourceItemFocus, { color: colors.textMuted }]}>{src.focus}</Text>
-              </View>
-              <Text style={[styles.sourceDomain, { color: colors.primary }]}>{src.domain}</Text>
-            </View>
-          ))}
+                  <Text style={[styles.trendingTitle, { color: colors.text }]} numberOfLines={2}>
+                    {article.title}
+                  </Text>
+
+                  <View style={styles.metaRow}>
+                    <Text style={[styles.metaText, { color: colors.textSubtle }]}>
+                      {article.readTimeMinutes} min read
+                    </Text>
+                    <Text style={[styles.dot, { color: colors.textSubtle }]}>•</Text>
+                    <Text style={[styles.metaText, { color: colors.textSubtle }]}>
+                      {article.category.toUpperCase()}
+                    </Text>
+                  </View>
+                </View>
+              </Pressable>
+            );
+          })}
         </View>
       </ScrollView>
     </View>
@@ -165,140 +193,157 @@ export default function ExploreScreen() {
 }
 
 const styles = StyleSheet.create({
-  screen: {
+  container: {
     flex: 1,
   },
-  scrollContent: {
-    padding: 16,
-    paddingBottom: 40,
-  },
   header: {
-    marginBottom: 16,
+    paddingHorizontal: 20,
+    paddingBottom: 12,
+    borderBottomWidth: 1,
+    gap: 12,
   },
-  headerSubtitle: {
-    fontSize: 11,
+  screenTitle: {
+    fontSize: 24,
     fontWeight: '800',
-    letterSpacing: 1,
-    marginBottom: 4,
-  },
-  headerTitle: {
-    fontSize: 26,
-    fontWeight: '900',
     letterSpacing: -0.5,
   },
-  searchBar: {
+  searchBarShortcut: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 14,
-    paddingVertical: 10,
-    borderRadius: 14,
+    borderRadius: 10,
     borderWidth: 1,
-    marginBottom: 20,
+    paddingHorizontal: 14,
+    minHeight: 44,
   },
   searchIcon: {
     marginRight: 10,
   },
-  searchInput: {
-    flex: 1,
+  searchPlaceholder: {
     fontSize: 14,
-    padding: 0,
+    fontWeight: '400',
+  },
+  scrollContent: {
+    paddingHorizontal: 20,
+    paddingTop: 20,
   },
   sectionHeader: {
-    marginTop: 10,
-    marginBottom: 12,
+    marginBottom: 16,
   },
-  sectionTitleRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  sectionTitle: {
+  sectionHeading: {
     fontSize: 18,
     fontWeight: '800',
+    letterSpacing: -0.3,
+    marginBottom: 4,
   },
-  trendingGrid: {
-    gap: 8,
-    marginBottom: 20,
+  sectionSubheading: {
+    fontSize: 13,
   },
-  trendingCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: 12,
-    borderRadius: 12,
-    borderWidth: 1,
-  },
-  trendingRankBox: {
-    width: 28,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: 10,
-  },
-  trendingRank: {
-    fontSize: 14,
-    fontWeight: '800',
-    color: '#FFA116',
-  },
-  trendingInfo: {
-    flex: 1,
-  },
-  trendingTag: {
-    fontSize: 15,
-    fontWeight: '700',
-  },
-  trendingCount: {
-    fontSize: 12,
-    marginTop: 2,
-  },
-  categoryGrid: {
+  topicsGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: 12,
-    marginBottom: 20,
   },
-  categoryCard: {
+  topicCard: {
     width: '48%',
-    padding: 14,
-    borderRadius: 14,
+    height: 120,
+    borderRadius: 12,
     borderWidth: 1,
+    overflow: 'hidden',
+    position: 'relative',
   },
-  catIconWrap: {
-    width: 36,
-    height: 36,
-    borderRadius: 10,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 10,
+  topicImage: {
+    width: '100%',
+    height: '100%',
   },
-  catTitle: {
-    fontSize: 14,
+  topicOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(0,0,0,0.48)',
+  },
+  topicContent: {
+    position: 'absolute',
+    bottom: 12,
+    left: 12,
+    right: 12,
+  },
+  topicTitle: {
+    color: '#FFFFFF',
+    fontSize: 15,
     fontWeight: '700',
+    letterSpacing: -0.2,
+    marginBottom: 2,
+  },
+  topicCount: {
+    color: 'rgba(255,255,255,0.75)',
+    fontSize: 11,
+    fontWeight: '500',
+  },
+  trendingHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  trendingList: {
+    gap: 16,
+  },
+  trendingItem: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    paddingBottom: 16,
+    borderBottomWidth: 1,
+  },
+  rankNumber: {
+    fontSize: 28,
+    fontWeight: '800',
+    width: 44,
+    lineHeight: 32,
+    letterSpacing: -0.5,
+  },
+  trendingDetails: {
+    flex: 1,
+  },
+  authorRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
     marginBottom: 4,
   },
-  catSubtitle: {
-    fontSize: 11,
+  miniAvatar: {
+    width: 18,
+    height: 18,
+    borderRadius: 9,
+    marginRight: 6,
   },
-  sourceListCard: {
-    borderRadius: 14,
-    borderWidth: 1,
-    paddingHorizontal: 16,
-    paddingVertical: 4,
-  },
-  sourceItem: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
+  miniAvatarFallback: {
+    width: 18,
+    height: 18,
+    borderRadius: 9,
+    marginRight: 6,
     alignItems: 'center',
-    paddingVertical: 12,
+    justifyContent: 'center',
   },
-  sourceItemName: {
-    fontSize: 14,
-    fontWeight: '700',
-  },
-  sourceItemFocus: {
-    fontSize: 11,
-    marginTop: 2,
-  },
-  sourceDomain: {
-    fontSize: 11,
+  authorName: {
+    fontSize: 12,
     fontWeight: '600',
+    maxWidth: 110,
+  },
+  sourceText: {
+    fontSize: 12,
+    maxWidth: 100,
+  },
+  dot: {
+    marginHorizontal: 5,
+    fontSize: 10,
+  },
+  trendingTitle: {
+    fontSize: 15,
+    fontWeight: '700',
+    lineHeight: 20,
+    marginBottom: 6,
+  },
+  metaRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  metaText: {
+    fontSize: 11,
+    fontWeight: '500',
   },
 });

@@ -3,25 +3,24 @@ import {
   StyleSheet,
   View,
   Text,
-  TextInput,
   Pressable,
-  ActivityIndicator,
   RefreshControl,
   ViewToken,
 } from 'react-native';
 import { FlashList } from '@shopify/flash-list';
 import FontAwesome from '@expo/vector-icons/FontAwesome';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Alert } from 'react-native';
 import { useRouter } from 'expo-router';
 import Colors from '../../constants/Colors';
 import { useColorScheme } from '@/components/useColorScheme';
 import { useFeedStore } from '../../src/stores/useFeedStore';
 import { useBookmarkStore } from '../../src/stores/useBookmarkStore';
-import { useAuthStore } from '../../src/stores/useAuthStore';
+import { useSettingsStore } from '../../src/stores/useSettingsStore';
 import { FeedCard } from '../../src/components/FeedCard';
 import { TopicPillBar } from '../../src/components/TopicPillBar';
-import { TelemetryHud } from '../../src/components/TelemetryHud';
+import { SkeletonCard } from '../../src/components/SkeletonCard';
+import { OfflineBanner } from '../../src/components/OfflineBanner';
+import { EmptyState } from '../../src/components/EmptyState';
 import { telemetryService } from '../../src/services/telemetryService';
 import { prefetchService } from '../../src/services/prefetchService';
 import { Article } from '../../src/types';
@@ -31,32 +30,29 @@ export default function FeedScreen() {
   const insets = useSafeAreaInsets();
   const colorScheme = useColorScheme() ?? 'dark';
   const colors = Colors[colorScheme];
-  const { user, logout } = useAuthStore();
 
   const {
     articles,
     category,
-    searchQuery,
     isLoading,
     isRefreshing,
-    isLivePipeline,
-    hasMore,
     setCategory,
-    setSearchQuery,
     loadInitialFeed,
     refreshFeed,
     loadMore,
   } = useFeedStore();
 
-  const { hydrate } = useBookmarkStore();
-  const [isSearchActive, setIsSearchActive] = useState(false);
+  const { hydrate: hydrateBookmarks } = useBookmarkStore();
+  const { cardLayout, setCardLayout, dataSaver, isOffline, setIsOffline } = useSettingsStore();
+
+  const [activeTab, setActiveTab] = useState<'for-you' | 'latest'>('for-you');
 
   useEffect(() => {
-    hydrate();
+    hydrateBookmarks();
     loadInitialFeed();
   }, []);
 
-  // FlashList Viewport Telemetry Tracker
+  // FlashList Viewport Telemetry Tracker (Runs silently under the hood)
   const onViewableItemsChanged = useRef(
     ({ viewableItems }: { viewableItems: ViewToken[]; changed: ViewToken[] }) => {
       const items = viewableItems
@@ -69,125 +65,131 @@ export default function FeedScreen() {
             category: art.category,
           };
         });
-
       telemetryService.updateVisibleItems(items);
     }
   ).current;
 
   const viewabilityConfig = useRef({
-    itemVisiblePercentThreshold: 50, // 50% of cell visible in viewport
+    itemVisiblePercentThreshold: 50,
     minimumViewTime: 100,
   }).current;
 
-  const handleAccountPress = () => {
-    Alert.alert(
-      user?.isGuest ? 'Guest Session' : 'Account Profile',
-      user ? `Signed in as ${user.name}\n${user.email}` : 'Not signed in',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Sign Out',
-          style: 'destructive',
-          onPress: async () => {
-            await logout();
-            router.replace('/(auth)/login' as any);
-          },
-        },
-      ]
-    );
+  // Predictive Image Lookahead Prefetcher (Disabled if Data Saver is ON)
+  const handleScroll = (event: any) => {
+    if (dataSaver) return; // Respect Data Saver mode
+    const currentY = event.nativeEvent.contentOffset.y;
+    prefetchService.onScroll(currentY, articles, 3);
   };
 
+  const toggleCardLayout = () => {
+    setCardLayout(cardLayout === 'compact' ? 'large' : 'compact');
+  };
+
+  // Sort articles based on For You vs Latest tab
+  const displayedArticles = [...articles].sort((a, b) => {
+    if (activeTab === 'latest') {
+      return new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime();
+    }
+    // 'for-you' utilizes the client ranking score
+    return (b.edgeScore || 0) - (a.edgeScore || 0);
+  });
+
   return (
-    <View style={[styles.screen, { backgroundColor: colors.background, paddingTop: insets.top }]}>
-      {/* Top Header */}
-      <View style={[styles.header, { borderBottomColor: colors.cardBorder }]}>
-        <View style={styles.brandRow}>
-          <View style={styles.logoGroup}>
-            <View style={[styles.logoIconBg, { backgroundColor: colors.primary }]}>
-              <FontAwesome name="bolt" size={16} color="#090D16" />
-            </View>
-            <View>
-              <Text style={[styles.brandTitle, { color: colors.text }]}>PulseFeed</Text>
-              <View style={styles.statusPillRow}>
-                <View
-                  style={[
-                    styles.statusDot,
-                    { backgroundColor: isLivePipeline ? '#10B981' : '#38BDF8' },
-                  ]}
-                />
-                <Text
-                  style={[
-                    styles.statusPillText,
-                    { color: isLivePipeline ? '#10B981' : '#38BDF8' },
-                  ]}>
-                  {isLivePipeline ? 'LIVE HN & DEV.TO' : 'EDGE SWR CACHED'}
-                </Text>
-              </View>
-            </View>
-          </View>
-
-          <View style={styles.headerActions}>
-            <Pressable
-              onPress={() => setIsSearchActive(!isSearchActive)}
-              style={({ pressed }) => [
-                styles.headerBtn,
-                { backgroundColor: colors.card, borderColor: colors.cardBorder, opacity: pressed ? 0.7 : 1 },
-              ]}>
-              <FontAwesome
-                name={isSearchActive ? 'close' : 'search'}
-                size={14}
-                color={colors.text}
-              />
-            </Pressable>
-
-            <Pressable
-              onPress={handleAccountPress}
-              style={({ pressed }) => [
-                styles.headerBtn,
-                { backgroundColor: colors.card, borderColor: colors.cardBorder, opacity: pressed ? 0.7 : 1 },
-              ]}>
-              <FontAwesome name="user-o" size={14} color={colors.text} />
-            </Pressable>
-          </View>
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
+      {/* Editorial Header */}
+      <View style={[styles.header, { paddingTop: insets.top + 8, borderBottomColor: colors.cardBorder }]}>
+        <View style={styles.brandTitleRow}>
+          <Text style={[styles.brandTitle, { color: colors.text }]}>PulseFeed</Text>
         </View>
 
-        {/* Collapsible Search Input */}
-        {isSearchActive && (
-          <View style={[styles.searchBar, { backgroundColor: colors.card, borderColor: colors.cardBorder }]}>
-            <FontAwesome name="search" size={13} color={colors.textMuted} style={styles.searchIcon} />
-            <TextInput
-              style={[styles.searchInput, { color: colors.text }]}
-              placeholder="Filter stories, tags, or topics..."
-              placeholderTextColor={colors.textSubtle}
-              value={searchQuery}
-              onChangeText={setSearchQuery}
-              autoFocus
+        <View style={styles.headerRightActions}>
+          {/* Card Layout Mode Toggle (Large vs Compact) */}
+          <Pressable
+            onPress={toggleCardLayout}
+            hitSlop={10}
+            style={[styles.headerIconButton, { backgroundColor: colors.card, borderColor: colors.cardBorder }]}>
+            <FontAwesome
+              name={cardLayout === 'compact' ? 'th-large' : 'bars'}
+              size={14}
+              color={colors.text}
             />
-            {searchQuery.length > 0 && (
-              <Pressable onPress={() => setSearchQuery('')} hitSlop={8}>
-                <FontAwesome name="times-circle" size={14} color={colors.textSubtle} />
-              </Pressable>
-            )}
-          </View>
-        )}
+          </Pressable>
 
-        {/* Topic Pill Selector */}
-        <TopicPillBar selectedCategory={category} onSelectCategory={setCategory} />
+          {/* Search Button */}
+          <Pressable
+            onPress={() => router.push('/search' as any)}
+            hitSlop={10}
+            style={[styles.headerIconButton, { backgroundColor: colors.card, borderColor: colors.cardBorder }]}>
+            <FontAwesome name="search" size={14} color={colors.text} />
+          </Pressable>
+        </View>
       </View>
 
-      {/* 120 FPS High-Performance Feed List */}
-      <View style={styles.listContainer}>
+      {/* For You vs Latest Tabs */}
+      <View style={[styles.tabBar, { borderBottomColor: colors.cardBorder }]}>
+        <Pressable
+          onPress={() => setActiveTab('for-you')}
+          style={[styles.tabItem, activeTab === 'for-you' && { borderBottomColor: colors.primary }]}>
+          <Text
+            style={[
+              styles.tabText,
+              { color: activeTab === 'for-you' ? colors.text : colors.textMuted },
+            ]}>
+            For You
+          </Text>
+        </Pressable>
+
+        <Pressable
+          onPress={() => setActiveTab('latest')}
+          style={[styles.tabItem, activeTab === 'latest' && { borderBottomColor: colors.primary }]}>
+          <Text
+            style={[
+              styles.tabText,
+              { color: activeTab === 'latest' ? colors.text : colors.textMuted },
+            ]}>
+            Latest
+          </Text>
+        </Pressable>
+      </View>
+
+      {/* Topic Filter Pill Bar */}
+      <TopicPillBar selectedCategory={category} onSelectCategory={setCategory} />
+
+      {/* Offline Banner */}
+      <OfflineBanner
+        visible={isOffline}
+        onRetry={() => {
+          setIsOffline(false);
+          refreshFeed();
+        }}
+      />
+
+      {/* Content Feed with FlashList v2 */}
+      {isLoading && articles.length === 0 ? (
+        <View style={styles.skeletonContainer}>
+          <SkeletonCard layout={cardLayout} />
+          <SkeletonCard layout={cardLayout} />
+          <SkeletonCard layout={cardLayout} />
+        </View>
+      ) : displayedArticles.length === 0 ? (
+        <EmptyState
+          icon="newspaper-o"
+          title="No stories found"
+          description="We couldn't find any stories in this section. Pull down to refresh the feed."
+          actionLabel="Refresh Feed"
+          onAction={refreshFeed}
+        />
+      ) : (
         <FlashList
-          data={articles}
-          renderItem={({ item }) => <FeedCard article={item} />}
+          data={displayedArticles}
           keyExtractor={(item) => item.id}
-          onScroll={(e) => prefetchService.onScroll(e.nativeEvent.contentOffset.y, articles)}
-          scrollEventThrottle={16}
+          renderItem={({ item }) => <FeedCard article={item} layout={cardLayout} />}
           onViewableItemsChanged={onViewableItemsChanged}
           viewabilityConfig={viewabilityConfig}
+          onScroll={handleScroll}
+          scrollEventThrottle={32}
           onEndReached={loadMore}
           onEndReachedThreshold={0.5}
-          contentContainerStyle={styles.listContent}
           refreshControl={
             <RefreshControl
               refreshing={isRefreshing}
@@ -196,148 +198,68 @@ export default function FeedScreen() {
               colors={[colors.primary]}
             />
           }
-          ListEmptyComponent={
-            !isLoading ? (
-              <View style={styles.emptyContainer}>
-                <FontAwesome name="newspaper-o" size={42} color={colors.textSubtle} />
-                <Text style={[styles.emptyTitle, { color: colors.text }]}>No stories found</Text>
-                <Text style={[styles.emptySubtitle, { color: colors.textMuted }]}>
-                  Try clearing your search filter or selecting another topic.
-                </Text>
-              </View>
-            ) : null
-          }
-          ListFooterComponent={
-            isLoading && articles.length > 0 ? (
-              <View style={styles.footerLoader}>
-                <ActivityIndicator size="small" color={colors.primary} />
-                <Text style={[styles.loaderText, { color: colors.textMuted }]}>
-                  Streaming feed...
-                </Text>
-              </View>
-            ) : null
-          }
+          contentContainerStyle={styles.listContent}
         />
-      </View>
-
-      {/* Live Viewport Telemetry HUD */}
-      <TelemetryHud />
+      )}
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  screen: {
+  container: {
     flex: 1,
   },
   header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 20,
+    paddingBottom: 12,
     borderBottomWidth: 1,
   },
-  brandRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingTop: 8,
-    paddingBottom: 6,
-  },
-  logoGroup: {
+  brandTitleRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 10,
-  },
-  logoIconBg: {
-    width: 28,
-    height: 28,
-    borderRadius: 8,
-    alignItems: 'center',
-    justifyContent: 'center',
   },
   brandTitle: {
-    fontSize: 20,
-    fontWeight: '900',
-    letterSpacing: -0.5,
-  },
-  statusPillRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    marginTop: 1,
-  },
-  statusDot: {
-    width: 5,
-    height: 5,
-    borderRadius: 2.5,
-  },
-  statusPillText: {
-    fontSize: 9,
+    fontSize: 24,
     fontWeight: '800',
-    letterSpacing: 0.5,
+    letterSpacing: -0.6,
   },
-  headerActions: {
+  headerRightActions: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
   },
-  headerBtn: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
+  headerIconButton: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
     borderWidth: 1,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  searchBar: {
+  tabBar: {
     flexDirection: 'row',
-    alignItems: 'center',
-    marginHorizontal: 16,
-    marginTop: 6,
-    marginBottom: 4,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 12,
-    borderWidth: 1,
+    paddingHorizontal: 20,
+    borderBottomWidth: 1,
   },
-  searchIcon: {
-    marginRight: 8,
+  tabItem: {
+    paddingVertical: 12,
+    marginRight: 24,
+    borderBottomWidth: 2,
+    borderBottomColor: 'transparent',
+    minHeight: 44,
+    justifyContent: 'center',
   },
-  searchInput: {
-    flex: 1,
-    fontSize: 14,
-    padding: 0,
+  tabText: {
+    fontSize: 15,
+    fontWeight: '700',
   },
-  listContainer: {
-    flex: 1,
+  skeletonContainer: {
+    paddingTop: 12,
   },
   listContent: {
-    paddingTop: 12,
-    paddingBottom: 80,
-  },
-  emptyContainer: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingTop: 80,
-    paddingHorizontal: 32,
-  },
-  emptyTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    marginTop: 16,
-  },
-  emptySubtitle: {
-    fontSize: 14,
-    textAlign: 'center',
-    marginTop: 6,
-    lineHeight: 20,
-  },
-  footerLoader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
-    paddingVertical: 18,
-  },
-  loaderText: {
-    fontSize: 13,
+    paddingBottom: 24,
   },
 });

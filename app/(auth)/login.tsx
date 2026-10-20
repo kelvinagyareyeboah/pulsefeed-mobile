@@ -13,11 +13,16 @@ import {
 import FontAwesome from '@expo/vector-icons/FontAwesome';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import Colors from '../../constants/Colors';
+import { useColorScheme } from '@/components/useColorScheme';
 import { useAuthStore } from '../../src/stores/useAuthStore';
 
 export default function LoginScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const colorScheme = useColorScheme() ?? 'dark';
+  const colors = Colors[colorScheme];
+
   const { login, loginAsGuest, isLoading } = useAuthStore();
 
   const [email, setEmail] = useState('');
@@ -43,7 +48,7 @@ export default function LoginScreen() {
 
   return (
     <KeyboardAvoidingView
-      style={styles.keyboardView}
+      style={[styles.keyboardView, { backgroundColor: colors.background }]}
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
       <ScrollView
         contentContainerStyle={[
@@ -53,34 +58,34 @@ export default function LoginScreen() {
         keyboardShouldPersistTaps="handled">
         {/* Brand Header */}
         <View style={styles.brandHeader}>
-          <View style={styles.logoBadge}>
-            <FontAwesome name="bolt" size={26} color="#38BDF8" />
+          <View style={[styles.logoBadge, { backgroundColor: colors.card, borderColor: colors.cardBorder }]}>
+            <FontAwesome name="bookmark" size={24} color={colors.primary} />
           </View>
-          <Text style={styles.heading}>Sign in to PulseFeed</Text>
-          <Text style={styles.subheading}>
-            Access high-velocity feeds and offline reading
+          <Text style={[styles.heading, { color: colors.text }]}>Sign in to PulseFeed</Text>
+          <Text style={[styles.subheading, { color: colors.textMuted }]}>
+            High-signal reading, personalized to your interests
           </Text>
         </View>
 
         {/* Error Alert Box */}
         {errorMessage ? (
-          <View style={styles.errorBox}>
-            <FontAwesome name="exclamation-circle" size={14} color="#EF4444" />
-            <Text style={styles.errorText}>{errorMessage}</Text>
+          <View style={[styles.errorBox, { backgroundColor: colors.card, borderColor: colors.bookmark }]}>
+            <FontAwesome name="exclamation-circle" size={14} color={colors.bookmark} />
+            <Text style={[styles.errorText, { color: colors.bookmark }]}>{errorMessage}</Text>
           </View>
         ) : null}
 
         {/* Input Form */}
-        <View style={styles.formCard}>
+        <View style={[styles.formCard, { backgroundColor: colors.card, borderColor: colors.cardBorder }]}>
           {/* Email Input */}
           <View style={styles.inputGroup}>
-            <Text style={styles.inputLabel}>EMAIL ADDRESS</Text>
-            <View style={styles.inputWrapper}>
-              <FontAwesome name="envelope-o" size={14} color="#64748B" style={styles.inputIcon} />
+            <Text style={[styles.inputLabel, { color: colors.textMuted }]}>EMAIL ADDRESS</Text>
+            <View style={[styles.inputWrapper, { backgroundColor: colors.background, borderColor: colors.cardBorder }]}>
+              <FontAwesome name="envelope-o" size={14} color={colors.textSubtle} style={styles.inputIcon} />
               <TextInput
-                style={styles.textInput}
+                style={[styles.textInput, { color: colors.text }]}
                 placeholder="name@example.com"
-                placeholderTextColor="#64748B"
+                placeholderTextColor={colors.textSubtle}
                 value={email}
                 onChangeText={(val) => {
                   setEmail(val);
@@ -96,17 +101,17 @@ export default function LoginScreen() {
           {/* Password Input */}
           <View style={styles.inputGroup}>
             <View style={styles.passwordLabelRow}>
-              <Text style={styles.inputLabel}>PASSWORD</Text>
-              <Pressable onPress={() => router.push('/(auth)/forgot-password' as any)} hitSlop={6}>
-                <Text style={styles.forgotLink}>Forgot?</Text>
+              <Text style={[styles.inputLabel, { color: colors.textMuted }]}>PASSWORD</Text>
+              <Pressable onPress={() => router.push('/(auth)/forgot-password' as any)} hitSlop={8}>
+                <Text style={[styles.forgotLink, { color: colors.primary }]}>Forgot password?</Text>
               </Pressable>
             </View>
-            <View style={styles.inputWrapper}>
-              <FontAwesome name="lock" size={16} color="#64748B" style={styles.inputIcon} />
+            <View style={[styles.inputWrapper, { backgroundColor: colors.background, borderColor: colors.cardBorder }]}>
+              <FontAwesome name="lock" size={16} color={colors.textSubtle} style={styles.inputIcon} />
               <TextInput
-                style={styles.textInput}
-                placeholder="Enter password (min 6 chars)"
-                placeholderTextColor="#64748B"
+                style={[styles.textInput, { color: colors.text }]}
+                placeholder="Enter password (min 6 characters)"
+                placeholderTextColor={colors.textSubtle}
                 value={password}
                 onChangeText={(val) => {
                   setPassword(val);
@@ -115,26 +120,29 @@ export default function LoginScreen() {
                 secureTextEntry={!showPassword}
                 autoCapitalize="none"
               />
-              <Pressable onPress={() => setShowPassword(!showPassword)} hitSlop={8}>
+              <Pressable
+                onPress={() => setShowPassword(!showPassword)}
+                hitSlop={8}
+                style={styles.eyeButton}>
                 <FontAwesome
                   name={showPassword ? 'eye' : 'eye-slash'}
                   size={14}
-                  color="#64748B"
+                  color={colors.textSubtle}
                 />
               </Pressable>
             </View>
           </View>
 
-          {/* Sign In Primary Action */}
+          {/* Submit Button */}
           <Pressable
             onPress={handleSignIn}
             disabled={isLoading}
             style={({ pressed }) => [
               styles.primaryBtn,
-              { opacity: pressed || isLoading ? 0.85 : 1 },
+              { backgroundColor: colors.primary, opacity: pressed ? 0.88 : 1 },
             ]}>
             {isLoading ? (
-              <ActivityIndicator size="small" color="#090D16" />
+              <ActivityIndicator color="#090D16" size="small" />
             ) : (
               <Text style={styles.primaryBtnText}>Sign In</Text>
             )}
@@ -142,28 +150,29 @@ export default function LoginScreen() {
 
           {/* Divider */}
           <View style={styles.dividerRow}>
-            <View style={styles.dividerLine} />
-            <Text style={styles.dividerText}>OR</Text>
-            <View style={styles.dividerLine} />
+            <View style={[styles.dividerLine, { backgroundColor: colors.cardBorder }]} />
+            <Text style={[styles.dividerText, { color: colors.textSubtle }]}>OR</Text>
+            <View style={[styles.dividerLine, { backgroundColor: colors.cardBorder }]} />
           </View>
 
-          {/* Continue as Guest Button */}
+          {/* Guest One-Tap Access */}
           <Pressable
             onPress={handleGuestSignIn}
+            disabled={isLoading}
             style={({ pressed }) => [
               styles.guestBtn,
-              { opacity: pressed ? 0.8 : 1 },
+              { borderColor: colors.cardBorder, backgroundColor: colors.background, opacity: pressed ? 0.8 : 1 },
             ]}>
-            <FontAwesome name="user-secret" size={14} color="#94A3B8" />
-            <Text style={styles.guestBtnText}>Continue as Guest</Text>
+            <FontAwesome name="user-o" size={14} color={colors.text} style={styles.guestIcon} />
+            <Text style={[styles.guestBtnText, { color: colors.text }]}>Continue as Guest</Text>
           </Pressable>
         </View>
 
-        {/* Footer Navigation */}
+        {/* Footer: Register Link */}
         <View style={styles.footerRow}>
-          <Text style={styles.footerText}>Do not have an account? </Text>
-          <Pressable onPress={() => router.push('/(auth)/register' as any)} hitSlop={6}>
-            <Text style={styles.registerLink}>Sign Up</Text>
+          <Text style={[styles.footerText, { color: colors.textMuted }]}>New to PulseFeed?</Text>
+          <Pressable onPress={() => router.push('/(auth)/register' as any)} hitSlop={8}>
+            <Text style={[styles.createAccountLink, { color: colors.primary }]}>Create an account</Text>
           </Pressable>
         </View>
       </ScrollView>
@@ -174,163 +183,148 @@ export default function LoginScreen() {
 const styles = StyleSheet.create({
   keyboardView: {
     flex: 1,
-    backgroundColor: '#090D16',
   },
   scrollContent: {
-    flexGrow: 1,
-    justifyContent: 'center',
     paddingHorizontal: 20,
+    justifyContent: 'center',
+    flexGrow: 1,
   },
   brandHeader: {
     alignItems: 'center',
     marginBottom: 24,
   },
   logoBadge: {
-    width: 60,
-    height: 60,
+    width: 56,
+    height: 56,
     borderRadius: 16,
-    backgroundColor: '#121826',
     borderWidth: 1,
-    borderColor: '#1E293B',
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 16,
   },
   heading: {
-    color: '#F8FAFC',
-    fontSize: 22,
+    fontSize: 24,
     fontWeight: '800',
+    letterSpacing: -0.5,
     marginBottom: 6,
   },
   subheading: {
-    color: '#94A3B8',
-    fontSize: 13,
+    fontSize: 14,
     textAlign: 'center',
+    maxWidth: 280,
   },
   errorBox: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
-    backgroundColor: 'rgba(239, 68, 68, 0.1)',
+    padding: 12,
+    borderRadius: 8,
     borderWidth: 1,
-    borderColor: '#EF4444',
-    paddingHorizontal: 14,
-    paddingVertical: 10,
-    borderRadius: 10,
     marginBottom: 16,
+    gap: 8,
   },
   errorText: {
-    color: '#EF4444',
-    fontSize: 12,
-    fontWeight: '600',
+    fontSize: 13,
+    fontWeight: '500',
     flex: 1,
   },
   formCard: {
-    backgroundColor: '#121826',
-    borderRadius: 18,
-    borderWidth: 1,
-    borderColor: '#1E293B',
     padding: 20,
-    marginBottom: 24,
+    borderRadius: 16,
+    borderWidth: 1,
+    gap: 16,
   },
   inputGroup: {
-    marginBottom: 18,
+    gap: 6,
   },
   inputLabel: {
-    color: '#64748B',
-    fontSize: 10,
-    fontWeight: '800',
-    letterSpacing: 0.8,
-    marginBottom: 8,
+    fontSize: 11,
+    fontWeight: '700',
+    letterSpacing: 0.6,
   },
   passwordLabelRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 8,
   },
   forgotLink: {
-    color: '#38BDF8',
     fontSize: 12,
-    fontWeight: '700',
+    fontWeight: '600',
   },
   inputWrapper: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#090D16',
-    borderRadius: 12,
+    borderRadius: 10,
     borderWidth: 1,
-    borderColor: '#1E293B',
     paddingHorizontal: 12,
-    height: 48,
+    minHeight: 48,
   },
   inputIcon: {
     marginRight: 10,
-    width: 16,
-    textAlign: 'center',
   },
   textInput: {
     flex: 1,
-    color: '#F8FAFC',
-    fontSize: 14,
+    fontSize: 15,
+    paddingVertical: 12,
   },
-  primaryBtn: {
-    backgroundColor: '#38BDF8',
-    borderRadius: 12,
-    height: 48,
+  eyeButton: {
+    minHeight: 44,
+    minWidth: 44,
     alignItems: 'center',
     justifyContent: 'center',
-    marginTop: 6,
+  },
+  primaryBtn: {
+    minHeight: 48,
+    borderRadius: 24,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginTop: 4,
   },
   primaryBtnText: {
     color: '#090D16',
-    fontSize: 14,
-    fontWeight: '800',
+    fontSize: 15,
+    fontWeight: '700',
   },
   dividerRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginVertical: 18,
+    marginVertical: 4,
   },
   dividerLine: {
     flex: 1,
     height: 1,
-    backgroundColor: '#1E293B',
   },
   dividerText: {
-    color: '#64748B',
+    marginHorizontal: 12,
     fontSize: 11,
-    fontWeight: '700',
-    paddingHorizontal: 10,
+    fontWeight: '600',
   },
   guestBtn: {
     flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
-    backgroundColor: '#090D16',
-    borderRadius: 12,
+    minHeight: 48,
+    borderRadius: 24,
     borderWidth: 1,
-    borderColor: '#1E293B',
-    height: 46,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  guestIcon: {
+    marginRight: 8,
   },
   guestBtnText: {
-    color: '#E2E8F0',
-    fontSize: 13,
-    fontWeight: '700',
+    fontSize: 14,
+    fontWeight: '600',
   },
   footerRow: {
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
+    marginTop: 24,
+    gap: 6,
   },
   footerText: {
-    color: '#94A3B8',
-    fontSize: 13,
+    fontSize: 14,
   },
-  registerLink: {
-    color: '#38BDF8',
-    fontSize: 13,
-    fontWeight: '800',
+  createAccountLink: {
+    fontSize: 14,
+    fontWeight: '700',
   },
 });

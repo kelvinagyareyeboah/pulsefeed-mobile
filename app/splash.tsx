@@ -2,27 +2,37 @@ import React, { useEffect, useRef } from 'react';
 import { View, Text, StyleSheet, Animated } from 'react-native';
 import FontAwesome from '@expo/vector-icons/FontAwesome';
 import { useRouter } from 'expo-router';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useAuthStore } from '../src/stores/useAuthStore';
+import { useSettingsStore } from '../src/stores/useSettingsStore';
+import Colors from '../constants/Colors';
+import { useColorScheme } from '@/components/useColorScheme';
+import { ONBOARDING_COMPLETED_KEY } from './onboarding';
 
 export default function SplashScreen() {
   const router = useRouter();
+  const colorScheme = useColorScheme() ?? 'dark';
+  const colors = Colors[colorScheme];
+
   const { isAuthenticated, isHydrated, hydrate } = useAuthStore();
+  const { hydrate: hydrateSettings } = useSettingsStore();
 
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const scaleAnim = useRef(new Animated.Value(0.92)).current;
 
   useEffect(() => {
     hydrate();
+    hydrateSettings();
 
     Animated.parallel([
       Animated.timing(fadeAnim, {
         toValue: 1,
-        duration: 700,
+        duration: 650,
         useNativeDriver: true,
       }),
       Animated.spring(scaleAnim, {
         toValue: 1,
-        friction: 7,
+        friction: 8,
         tension: 40,
         useNativeDriver: true,
       }),
@@ -32,19 +42,34 @@ export default function SplashScreen() {
   useEffect(() => {
     if (!isHydrated) return;
 
-    const timer = setTimeout(() => {
-      if (isAuthenticated) {
-        router.replace('/(tabs)');
-      } else {
-        router.replace('/(auth)/login' as any);
-      }
-    }, 1600);
+    let isMounted = true;
+    const checkStateAndNavigate = async () => {
+      try {
+        const onboardingDone = await AsyncStorage.getItem(ONBOARDING_COMPLETED_KEY);
 
-    return () => clearTimeout(timer);
+        setTimeout(() => {
+          if (!isMounted) return;
+          if (!onboardingDone) {
+            router.replace('/onboarding' as any);
+          } else if (isAuthenticated) {
+            router.replace('/(tabs)');
+          } else {
+            router.replace('/(auth)/login' as any);
+          }
+        }, 1200);
+      } catch (e) {
+        if (isMounted) router.replace('/(tabs)');
+      }
+    };
+
+    checkStateAndNavigate();
+    return () => {
+      isMounted = false;
+    };
   }, [isHydrated, isAuthenticated]);
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
       <Animated.View
         style={[
           styles.content,
@@ -53,21 +78,20 @@ export default function SplashScreen() {
             transform: [{ scale: scaleAnim }],
           },
         ]}>
-        {/* Solid Branded Logo Box */}
-        <View style={styles.logoBox}>
-          <FontAwesome name="bolt" size={36} color="#38BDF8" />
+        {/* Solid Editorial Logo Box */}
+        <View style={[styles.logoBox, { backgroundColor: colors.card, borderColor: colors.cardBorder }]}>
+          <FontAwesome name="bookmark" size={32} color={colors.primary} />
         </View>
 
-        {/* Brand Title & Tagline */}
-        <Text style={styles.brandTitle}>PULSEFEED</Text>
-        <Text style={styles.tagline}>High-Velocity Mobile Reader</Text>
-
-        {/* Minimalist Solid Pill Indicator */}
-        <View style={styles.statusPill}>
-          <View style={styles.statusDot} />
-          <Text style={styles.statusText}>READY</Text>
-        </View>
+        <Text style={[styles.brandTitle, { color: colors.text }]}>PulseFeed</Text>
+        <Text style={[styles.tagline, { color: colors.textMuted }]}>
+          High-signal stories for curious minds
+        </Text>
       </Animated.View>
+
+      <View style={styles.footer}>
+        <Text style={[styles.versionText, { color: colors.textSubtle }]}>Version 1.0.0</Text>
+      </View>
     </View>
   );
 }
@@ -75,59 +99,41 @@ export default function SplashScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#090D16',
     alignItems: 'center',
     justifyContent: 'center',
+    padding: 24,
   },
   content: {
     alignItems: 'center',
   },
   logoBox: {
-    width: 76,
-    height: 76,
+    width: 72,
+    height: 72,
     borderRadius: 20,
-    backgroundColor: '#121826',
     borderWidth: 1,
-    borderColor: '#1E293B',
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 20,
   },
   brandTitle: {
-    color: '#F8FAFC',
-    fontSize: 26,
-    fontWeight: '900',
-    letterSpacing: 2,
-    marginBottom: 6,
+    fontSize: 32,
+    fontWeight: '800',
+    letterSpacing: -0.8,
+    marginBottom: 8,
   },
   tagline: {
-    color: '#94A3B8',
-    fontSize: 13,
+    fontSize: 15,
+    fontWeight: '400',
+    textAlign: 'center',
+    maxWidth: 260,
+  },
+  footer: {
+    position: 'absolute',
+    bottom: 40,
+  },
+  versionText: {
+    fontSize: 12,
     fontWeight: '500',
     letterSpacing: 0.5,
-    marginBottom: 28,
-  },
-  statusPill: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    paddingHorizontal: 12,
-    paddingVertical: 5,
-    borderRadius: 14,
-    backgroundColor: '#121826',
-    borderWidth: 1,
-    borderColor: '#1E293B',
-  },
-  statusDot: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-    backgroundColor: '#10B981',
-  },
-  statusText: {
-    color: '#10B981',
-    fontSize: 10,
-    fontWeight: '800',
-    letterSpacing: 0.8,
   },
 });

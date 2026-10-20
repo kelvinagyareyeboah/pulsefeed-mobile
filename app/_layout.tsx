@@ -7,6 +7,7 @@ import { useEffect } from 'react';
 import 'react-native-reanimated';
 
 import { useColorScheme } from '@/components/useColorScheme';
+import { useSettingsStore } from '../src/stores/useSettingsStore';
 
 export {
   // Catch any errors thrown by the Layout component.
@@ -26,7 +27,13 @@ export default function RootLayout() {
     ...FontAwesome.font,
   });
 
-  // Expo Router uses Error Boundaries to catch errors in the navigation tree.
+  const { theme } = useSettingsStore();
+  const systemColorScheme = useColorScheme();
+
+  // Determine active color scheme based on user preference
+  const activeColorScheme =
+    theme === 'system' ? systemColorScheme : theme;
+
   useEffect(() => {
     if (error) throw error;
   }, [error]);
@@ -41,20 +48,17 @@ export default function RootLayout() {
     return null;
   }
 
-  return <RootLayoutNav />;
-}
-
-function RootLayoutNav() {
-  const colorScheme = useColorScheme();
-
   return (
-    <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
+    <ThemeProvider value={activeColorScheme === 'dark' ? DarkTheme : DefaultTheme}>
       <Stack initialRouteName="splash">
         <Stack.Screen name="splash" options={{ headerShown: false, animation: 'fade' }} />
+        <Stack.Screen name="onboarding" options={{ headerShown: false, animation: 'slide_from_right' }} />
+        <Stack.Screen name="topic-picker" options={{ headerShown: false, animation: 'slide_from_right' }} />
         <Stack.Screen name="(auth)" options={{ headerShown: false, animation: 'slide_from_right' }} />
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
         <Stack.Screen name="article/[id]" options={{ headerShown: false, animation: 'slide_from_right' }} />
-        <Stack.Screen name="modal" options={{ presentation: 'modal' }} />
+        <Stack.Screen name="search" options={{ headerShown: false, animation: 'fade' }} />
+        <Stack.Screen name="modal" options={{ presentation: 'modal', headerShown: false }} />
       </Stack>
     </ThemeProvider>
   );
