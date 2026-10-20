@@ -70,14 +70,39 @@ export default function OnboardingScreen() {
     } catch (e) {
       console.warn('Failed to save onboarding state:', e);
     }
-    router.replace('/topic-picker' as any);
+    try {
+      router.replace('/topic-picker' as any);
+    } catch {
+      router.replace('/(tabs)' as any);
+    }
   };
 
   const handleNext = () => {
     if (currentIndex < SLIDES.length - 1) {
-      flatListRef.current?.scrollToIndex({ index: currentIndex + 1, animated: true });
+      const nextIndex = currentIndex + 1;
+      setCurrentIndex(nextIndex);
+      try {
+        flatListRef.current?.scrollToOffset({
+          offset: nextIndex * width,
+          animated: true,
+        });
+      } catch (e) {
+        console.warn('Scroll error:', e);
+      }
     } else {
       completeOnboarding();
+    }
+  };
+
+  const goToSlide = (index: number) => {
+    setCurrentIndex(index);
+    try {
+      flatListRef.current?.scrollToOffset({
+        offset: index * width,
+        animated: true,
+      });
+    } catch (e) {
+      console.warn('Scroll error:', e);
     }
   };
 
@@ -106,6 +131,11 @@ export default function OnboardingScreen() {
         showsHorizontalScrollIndicator={false}
         onScroll={handleScroll}
         scrollEventThrottle={16}
+        getItemLayout={(_, index) => ({
+          length: width,
+          offset: width * index,
+          index,
+        })}
         renderItem={({ item }) => (
           <View style={[styles.slideContainer, { width }]}>
             <View style={styles.imageCardWrapper}>
@@ -130,8 +160,10 @@ export default function OnboardingScreen() {
           {SLIDES.map((_, index) => {
             const isActive = index === currentIndex;
             return (
-              <View
+              <Pressable
                 key={index}
+                onPress={() => goToSlide(index)}
+                hitSlop={8}
                 style={[
                   styles.dot,
                   {

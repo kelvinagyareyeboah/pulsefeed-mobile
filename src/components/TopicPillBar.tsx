@@ -1,84 +1,114 @@
 import React from 'react';
-import { ScrollView, Text, StyleSheet, Pressable } from 'react-native';
-import FontAwesome from '@expo/vector-icons/FontAwesome';
-import { TopicCategory } from '../types';
-import { TOPIC_CATEGORIES } from '../services/feedService';
+import { View, ScrollView, Text, StyleSheet, Pressable } from 'react-native';
 import Colors from '../../constants/Colors';
 import { useColorScheme } from '@/components/useColorScheme';
+import { TopicCategory } from '../types';
+
+export type FeedTab = 'for-you' | 'latest' | TopicCategory;
+
+export interface TabOption {
+  id: FeedTab;
+  label: string;
+}
+
+export const FEED_TABS: TabOption[] = [
+  { id: 'for-you', label: 'For You' },
+  { id: 'latest', label: 'Latest' },
+  { id: 'tech', label: 'Engineering' },
+  { id: 'ai', label: 'Technology & AI' },
+  { id: 'design', label: 'Design & UI' },
+  { id: 'startups', label: 'Startups' },
+  { id: 'finance', label: 'Markets' },
+];
 
 interface TopicPillBarProps {
-  selectedCategory: TopicCategory;
-  onSelectCategory: (cat: TopicCategory) => void;
+  selectedTab: FeedTab;
+  onSelectTab: (tab: FeedTab) => void;
 }
 
 export const TopicPillBar: React.FC<TopicPillBarProps> = ({
-  selectedCategory,
-  onSelectCategory,
+  selectedTab,
+  onSelectTab,
 }) => {
   const colorScheme = useColorScheme() ?? 'dark';
   const colors = Colors[colorScheme];
 
   return (
-    <ScrollView
-      horizontal
-      showsHorizontalScrollIndicator={false}
-      contentContainerStyle={styles.container}>
-      {TOPIC_CATEGORIES.map((topic) => {
-        const isSelected = selectedCategory === topic.id;
-        return (
-          <Pressable
-            key={topic.id}
-            onPress={() => onSelectCategory(topic.id)}
-            style={({ pressed }) => [
-              styles.pill,
-              {
-                backgroundColor: isSelected ? colors.primary : colors.card,
-                borderColor: isSelected ? colors.primary : colors.cardBorder,
-                opacity: pressed ? 0.8 : 1,
-              },
-            ]}>
-            <FontAwesome
-              name={topic.icon as any}
-              size={12}
-              color={isSelected ? '#090D16' : colors.textMuted}
-              style={styles.icon}
-            />
-            <Text
-              style={[
-                styles.label,
-                {
-                  color: isSelected ? '#090D16' : colors.text,
-                  fontWeight: isSelected ? '700' : '500',
-                },
+    <View style={[styles.barWrapper, { borderBottomColor: colors.cardBorder, backgroundColor: colors.background }]}>
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        style={styles.scrollView}
+        contentContainerStyle={styles.container}>
+        {FEED_TABS.map((tab) => {
+          const isSelected = selectedTab === tab.id;
+          return (
+            <Pressable
+              key={tab.id}
+              onPress={() => onSelectTab(tab.id)}
+              hitSlop={6}
+              style={({ pressed }) => [
+                styles.tabItem,
+                { opacity: pressed ? 0.75 : 1 },
               ]}>
-              {topic.label}
-            </Text>
-          </Pressable>
-        );
-      })}
-    </ScrollView>
+              <Text
+                style={[
+                  styles.tabLabel,
+                  {
+                    color: isSelected ? colors.text : colors.textMuted,
+                    fontWeight: isSelected ? '700' : '500',
+                  },
+                ]}>
+                {tab.label}
+              </Text>
+
+              {/* Active Underline Indicator (Medium Style) */}
+              {isSelected && (
+                <View style={[styles.activeIndicator, { backgroundColor: colors.primary }]} />
+              )}
+            </Pressable>
+          );
+        })}
+      </ScrollView>
+    </View>
   );
 };
 
 const styles = StyleSheet.create({
-  container: {
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    gap: 8,
+  barWrapper: {
+    height: 44,
+    maxHeight: 44,
+    borderBottomWidth: 1,
+    overflow: 'hidden',
   },
-  pill: {
+  scrollView: {
+    height: 44,
+    maxHeight: 44,
+    flexGrow: 0,
+  },
+  container: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 22,
-    borderWidth: 1,
+    paddingHorizontal: 12,
+  },
+  tabItem: {
+    height: 44,
     minHeight: 44,
+    paddingHorizontal: 12,
+    justifyContent: 'center',
+    alignItems: 'center',
+    position: 'relative',
   },
-  icon: {
-    marginRight: 6,
+  tabLabel: {
+    fontSize: 14,
+    letterSpacing: -0.1,
   },
-  label: {
-    fontSize: 13,
+  activeIndicator: {
+    position: 'absolute',
+    bottom: 0,
+    left: 12,
+    right: 12,
+    height: 2.5,
+    borderRadius: 2,
   },
 });
